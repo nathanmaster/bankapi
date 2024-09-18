@@ -1,25 +1,22 @@
 const express = require('express');
 const bodyParser = require('body-parser');
+const Bank = require('./bank');
 
 const app = express();
 const port = 3000;
 
-// In-memory data storage
 const users = new Map();
 const accounts = [];
-let id = 0; // To generate unique IDs
+let id = 0; 
 
-// Parse request bodies
 app.use(bodyParser.json());
 
-// Define endpoints
-
-// GET all users
+//GET users
 app.get('/users', (req, res) => {
   res.json([...users.values()]); // Convert Map values to an array for response
 });
 
-// GET a specific user by ID
+// GET user by ID
 app.get('/users/:id', (req, res) => {
   console.log('Received ID:', req.params.id);
   const userId = parseInt(req.params.id);
@@ -30,7 +27,7 @@ app.get('/users/:id', (req, res) => {
   res.json(user);
 });
 
-// POST a new user
+// POST user
 app.post('/users', (req, res) => {
   const newUser = {
     id: ++id,
@@ -41,12 +38,12 @@ app.post('/users', (req, res) => {
   res.status(201).json(newUser);
 });
 
-// GET all accounts
+// GET accounts
 app.get('/accounts', (req, res) => {
   res.json(accounts);
 });
 
-// GET a specific account by ID
+// GET account by ID
 app.get('/accounts/:id', (req, res) => {
   const account = accounts.find(a => a.id === req.params.id);
   if (!account) {
@@ -55,7 +52,7 @@ app.get('/accounts/:id', (req, res) => {
   res.json(account);
 });
 
-// POST a new account (associated with a user)
+// POST account
 app.post('/accounts', (req, res) => {
     const userId = req.body.id;
     const user = users.get(userId);
@@ -72,7 +69,6 @@ app.post('/accounts', (req, res) => {
   res.status(201).json(newAccount);
 });
 
-// Start the server
 app.listen(port, () => {
   console.log(`Server listening on port ${port}`);
 });
