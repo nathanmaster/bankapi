@@ -1,69 +1,75 @@
 const express = require('express');
 const bodyParser = require('body-parser');
-const mongoose = require('mongoose');
 
 const app = express();
 const port = 3000;
 
-// Connect to MongoDB
-mongoose.connect('mongodb://localhost:27017/bank', { useNewUrlParser: true, useUnifiedTopology: true })
-  .then(() => console.log('Connected to MongoDB'))
-  .catch(err => console.error('Error connecting to MongoDB:', err));
+// In-memory data storage
+const users = new Map();
+const accounts = [];
+let id = 0; // To generate unique IDs
 
 // Parse request bodies
 app.use(bodyParser.json());
 
-// Define models
-const userSchema = new mongoose.Schema({
-  name: String,
-  email: String
-});
-
-const accountSchema = new mongoose.Schema({
-  user: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
-  balance: Number
-});
-
-const User = mongoose.model('User', userSchema);
-const Account = mongoose.model('Account', accountSchema);
-
 // Define endpoints
-app.get('/users', async (req, res) => {
-  const users = await User.find();
-  res.json(users);
+
+// GET all users
+app.get('/users', (req, res) => {
+  res.json([...users.values()]); // Convert Map values to an array for response
 });
 
-app.get('/users/:id', async (req, res) => {
-  const user = await User.findById(req.params.id);
+// GET a specific user by ID
+app.get('/users/:id', (req, res) => {
+  console.log('Received ID:', req.params.id);
+  const userId = parseInt(req.params.id);
+  const user = users.get(userId);
   if (!user) {
     return res.status(404).json({ error: 'User not found' });
   }
   res.json(user);
 });
 
-app.post('/users', async (req, res) => {
-  const user = new User(req.body);
-  await user.save();
-  res.status(201).json(user);
+// POST a new user
+app.post('/users', (req, res) => {
+  const newUser = {
+    id: ++id,
+    ...req.body
+  };
+  users.set(newUser.id, newUser); // Use set() to add to the Map
+  console.log('New user created:', newUser);
+  res.status(201).json(newUser);
 });
 
-app.get('/accounts', async (req, res) => {
-  const accounts = await Account.find();
+// GET all accounts
+app.get('/accounts', (req, res) => {
   res.json(accounts);
 });
 
-app.get('/accounts/:id', async (req, res) => {
-  const account = await Account.findById(req.params.id);
+// GET a specific account by ID
+app.get('/accounts/:id', (req, res) => {
+  const account = accounts.find(a => a.id === req.params.id);
   if (!account) {
     return res.status(404).json({ error: 'Account not found' });
   }
   res.json(account);
 });
 
-app.post('/accounts', async (req, res) => {
-  const account = new Account(req.body);
-  await account.save();
-  res.status(201).json(account);
+// POST a new account (associated with a user)
+app.post('/accounts', (req, res) => {
+    const userId = req.body.id;
+    const user = users.get(userId);
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+  const newAccount = {
+    id: ++id,
+    userId: user.id,
+    balance: 0
+  };
+  accounts.push(newAccount);
+  res.status(201).json(newAccount);
 });
 
 // Start the server
