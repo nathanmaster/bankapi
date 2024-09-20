@@ -1,26 +1,30 @@
-const express = require('express');
-const bodyParser = require('body-parser');
-const Bank = require('./bank');
+import express from 'express';
+import pkg from 'body-parser';
+import Bank from './bank.js';
 
+const { json } = pkg;
 const app = express();
 const port = 3000;
 
+/*
 const users = new Map();
 const accounts = [];
 let id = 0; 
+*/
 
-app.use(bodyParser.json());
+const bank = new Bank();
+
+app.use(json());
 
 //GET users
 app.get('/users', (req, res) => {
-  res.json([...users.values()]); // Convert Map values to an array for response
+  res.json(bank.getAllUsers()); // Convert Map values to an array for response
 });
 
 // GET user by ID
 app.get('/users/:id', (req, res) => {
-  console.log('Received ID:', req.params.id);
   const userId = parseInt(req.params.id);
-  const user = users.get(userId);
+  const user = bank.getUser(userId);
   if (!user) {
     return res.status(404).json({ error: 'User not found' });
   }
@@ -29,23 +33,38 @@ app.get('/users/:id', (req, res) => {
 
 // POST user
 app.post('/users', (req, res) => {
-  const newUser = {
-    id: ++id,
-    ...req.body
-  };
+  try {
+    const newUser = bank.createUser(req.body);
+    //console.log('New user created: ', newUser);
+    res.status(201).json(newUser);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+  /*
   users.set(newUser.id, newUser); // Use set() to add to the Map
   console.log('New user created:', newUser);
   res.status(201).json(newUser);
+  */
 });
+
+//DELETE user by id
+app.delete('/user/:id', (req, res) => {
+  const accountId = parseInt(req.params.id);
+  if (bank.deleteUser(userId)) {
+    res.sendStatus(204);
+  } else {
+    res.status(404).json({ error: 'User not found'});
+  }
+})
 
 // GET accounts
 app.get('/accounts', (req, res) => {
-  res.json(accounts);
+  res.json(bank.getAllAccounts());
 });
 
 // GET account by ID
 app.get('/accounts/:id', (req, res) => {
-  const account = accounts.find(a => a.id === req.params.id);
+  const account = bank.getAccount(req.params.id);
   if (!account) {
     return res.status(404).json({ error: 'Account not found' });
   }
@@ -54,11 +73,19 @@ app.get('/accounts/:id', (req, res) => {
 
 // POST account
 app.post('/accounts', (req, res) => {
-    const userId = req.body.id;
-    const user = users.get(userId);
-    if (!user) {
-      return res.status(404).json({ error: 'User not found' });
-    }
+  const userId = req.body.id;
+  try {
+    const newAccount = bank.createAccount(userId);
+    res.status(201).json(newAccount);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+  /*
+  const userId = req.body.id;
+  const user = users.get(userId);
+  if (!user) {
+    return res.status(404).json({ error: 'User not found' });
+  }
 
   const newAccount = {
     id: ++id,
@@ -67,7 +94,18 @@ app.post('/accounts', (req, res) => {
   };
   accounts.push(newAccount);
   res.status(201).json(newAccount);
+  */
 });
+
+//DELETE acocunt by id
+app.delete('/accounts/:id', (req, res) => {
+  const accountId = parseInt(req.params.id);
+  if (bank.deleteAccount(accountId)) {
+    res.sendStatus(204);
+  } else {
+    res.status(404).json({ error: 'Account not found'});
+  }
+})
 
 app.listen(port, () => {
   console.log(`Server listening on port ${port}`);
