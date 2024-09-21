@@ -1,72 +1,87 @@
-export default class Bank {
+class Bank {
   constructor() {
-    this.users = new Map();
-    this.accounts = [];
-    this.id = 0; // To generate unique IDs
+      this.users = new Map();
+      this.accounts = [];
+      this.userIdCounter = 0;
+      this.accountIdCounter = 0;
   }
-  
-  //create user
+
   createUser(userData) {
-    const newUser = {
-      id: ++this.id,
-      ...userData,
-    };
-    this.users.set(newUser.id, newUser);
-    return newUser;
-  }
-
-  //user getters
-
-  getUser(userId) {
-    return this.users.get(userId);
+      const newUser = {
+          id: ++this.userIdCounter,
+          ...userData,
+          accounts: []
+      };
+      this.users.set(newUser.id, newUser);
+      return newUser;
   }
 
   getAllUsers() {
-    return [...this.users.values()]; // Convert Map values to an array
+      return Array.from(this.users.values());
   }
 
-  //delete user
+  getUser(userId) {
+      return this.users.get(userId);
+  }
+
   deleteUser(userId) {
-      if (this.users.delete(userId)) {
-          this.accounts = this.accounts.filter(a => a.userId !== userId)
-          return true;
+      return this.users.delete(userId);
+  }
+
+  createAccount(userId, type, initialBalance = 0) {
+      const user = this.getUser(userId);
+      if (!user) {
+          throw new Error('User not found');
       }
-      return false;
-  }
-
-  //create account
-  createAccount(userId) {
-    const user = this.users.get(userId);
-    if (!user) {
-      throw new Error('User not found');
-    }
-
-    const newAccount = {
-      id: ++this.id,
-      userId,
-      balance: 0,
-    };
-    this.accounts.push(newAccount);
-    return newAccount;
-  }
-
-  //account getters
-
-  getAccount(accountId) {
-    return this.accounts.find(a => a.id === accountId);
+      const newAccount = {
+          id: ++this.accountIdCounter,
+          userId,
+          type,
+          balance: initialBalance
+      };
+      this.accounts.push(newAccount);
+      user.accounts.push(newAccount.id);
+      return newAccount;
   }
 
   getAllAccounts() {
-    return this.accounts;
+      return this.accounts;
   }
 
-  //delete account
-  deleteAccount(accountId) {
-      const index = this.accounts.findIndex(a => a.id === accountId);
-      if (index !== -1) {
-          this.accounts.solice(index, 1);
-          return true;
-      }
-      return false;
+  getAccount(accountId) {
+      return this.accounts.find(account => account.id === accountId);
   }
-};
+
+  deleteAccount(accountId) {
+      const accountIndex = this.accounts.findIndex(account => account.id === accountId);
+      if (accountIndex === -1) {
+          return false;
+      }
+      const account = this.accounts[accountIndex];
+      const user = this.getUser(account.userId);
+      user.accounts = user.accounts.filter(id => id !== accountId);
+      this.accounts.splice(accountIndex, 1);
+      return true;
+  }
+
+  getTotalAccountsForUser(userId) {
+      const user = this.getUser(userId);
+      if (!user) {
+          throw new Error('User not found');
+      }
+      return user.accounts.length;
+  }
+
+  getTotalBalanceForUser(userId) {
+      const user = this.getUser(userId);
+      if (!user) {
+          throw new Error('User not found');
+      }
+      return user.accounts.reduce((total, accountId) => {
+          const account = this.getAccount(accountId);
+          return total + (account ? account.balance : 0);
+      }, 0);
+  }
+}
+
+export default Bank;
